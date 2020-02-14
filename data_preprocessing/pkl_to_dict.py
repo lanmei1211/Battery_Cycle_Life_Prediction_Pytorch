@@ -2,18 +2,20 @@ import sys
 import numpy as np
 import pickle
 
-# In order t ofind the folder where the pkkl files are
+# In order to find the folder where the pkl files are
 sys.path.append('./..')
 
 
 def pkl_to_dict():
+
+    print('Converting the pkl files to a dictionary...')
 
     batches_dict = {}  # Initializing
 
     # ------------------------------- #
     # ----------- BATCH 1 ----------- #
     # ------------------------------- #
-    batch1 = pickle.load(open(r'Data/batch1.pkl', 'rb'))
+    batch1 = pickle.load(open(r'data/batch1.pkl', 'rb'))
 
     # remove batteries that do not reach 80% capacity
     del batch1['b1c8']
@@ -29,7 +31,7 @@ def pkl_to_dict():
     # ----------- BATCH 2 ----------- #
     # ------------------------------- #
 
-    batch2 = pickle.load(open(r'Data/batch2.pkl', 'rb'))
+    batch2 = pickle.load(open(r'data/batch2.pkl', 'rb'))
 
     # There are four cells from batch1 that carried into batch2, we'll remove the data from batch2
     # and put it with the correct cell from batch1
@@ -66,7 +68,7 @@ def pkl_to_dict():
     # ----------- BATCH 3 ----------- #
     # ------------------------------- #
 
-    batch3 = pickle.load(open(r'Data/batch3.pkl', 'rb'))
+    batch3 = pickle.load(open(r'data/batch3.pkl', 'rb'))
 
     # remove noisy channels from batch3
     del batch3['b3c37']
@@ -87,21 +89,16 @@ def pkl_to_dict():
     # ------------------------------- #
 
     numBat = numBat1 + numBat2 + numBat3
+    assert numBat == 124
 
     bat_dict = {**batch1, **batch2, **batch3}
     assert len(bat_dict.keys()) == 124
-    print('blub')
-
-    #for i in bat_dict.keys():
-    #    plt.plot(bat_dict[i]['summary']['cycle'], bat_dict[i]['summary']['QD'])
-    #plt.xlabel('Cycle Number')
-    #lt.ylabel('Discharge Capacity (Ah)')
-    #plt.grid()
-    #plt.show()
 
     #test_ind = np.hstack((np.arange(0, (numBat1 + numBat2), 2), 83))
     #train_ind = np.arange(1, (numBat1 + numBat2 - 1), 2)
     #secondary_test_ind = np.arange(numBat - numBat3, numBat)
+    print('DONE')
+
     return bat_dict
 
 
