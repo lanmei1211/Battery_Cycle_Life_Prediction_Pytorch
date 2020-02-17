@@ -51,7 +51,7 @@ In order to preprocess the data run
 python3 data_preprocessing.py
 ```
 
-from the base directory. This will generate a .pkl file in your ./data directory.The generated result is a nested dict with the following structure:
+from the base directory. This will generate `preprocessed_data.pkl` file in your `./data` directory.The generated result is a nested dict with the following structure:
 
 ```
 dataset
