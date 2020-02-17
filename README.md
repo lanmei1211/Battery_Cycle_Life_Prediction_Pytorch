@@ -38,20 +38,36 @@ python3 data_preprocessing.py
 from the base directory. This will generate a .pkl file in your data directory.The generated result is a nested dict with the following structure:
 
 dataset
+
     battery 1
+    
         cycle_life
+        
             # total cycles untill 80% of thenomial capacity has been reached
+            
         summary
+        
             IR
+            
             QD
+            
             Remaining_cycles
+            
             Discharge_time
+            
         cycles
+        
             Qdlin
+            
             Tdlin
+            
             Vdlin
+            
     battery 2
+    
         ...
+        
             ...
+            
 
 
