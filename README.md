@@ -39,7 +39,7 @@ from the base directory. This will generate a .pkl file in your data directory.T
 
 dataset
 
-    battery 1
+    b1c1
     
         cycle_life
         
@@ -63,7 +63,7 @@ dataset
             
             Vdlin
             
-    battery 2
+    b1c2
     
         ...
         
