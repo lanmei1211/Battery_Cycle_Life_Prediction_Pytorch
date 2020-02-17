@@ -28,6 +28,8 @@ The timeseries data is comprised of:
  * Charge (Ah)
  * Voltage (V)
  * Current (A)
+ 
+The data is available [here](https://data.matr.io/1/).
 
 ## Preprocessing
 
