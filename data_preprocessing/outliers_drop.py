@@ -65,7 +65,7 @@ def outlier_dict_without_mask(outlier_dict):
     return outlier_dict_wo_mask
 
 
-def drop_outliers_starting_left(Qd, T, V, t, std_threshold):
+def drop_outliers_starting_left(Qd, T, V, t, verbose, std_threshold):
     """
     Searches for outliers in Qd, T, V and t and drops them one by one starting with the smallest index.
     Outlier indeces are dropped from every array simultaniously, so the sizes still match.
@@ -86,7 +86,7 @@ def drop_outliers_starting_left(Qd, T, V, t, std_threshold):
 
     # Initialize and compute outliers
     drop_counter = 0
-    outlier_dict = compute_outlier_dict(std_threshold, verbose=True, Qd=Qd_, T=T_, V=V_, t=t_)
+    outlier_dict = compute_outlier_dict(std_threshold, verbose=False, Qd=Qd_, T=T_, V=V_, t=t_)
     original_outlier_dict = outlier_dict  # copy for debugging und raising OutlierException.
 
     # Process until no outliers are found.
@@ -105,9 +105,9 @@ def drop_outliers_starting_left(Qd, T, V, t, std_threshold):
         drop_counter += len(unique_indeces_to_drop)
 
         # Recompute outlierts after dropping the unique indeces from all arrays.
-        outlier_dict = compute_outlier_dict(std_threshold, verbose=True, Qd=Qd_, T=T_, V=V_, t=t_)
+        outlier_dict = compute_outlier_dict(std_threshold, verbose=False, Qd=Qd_, T=T_, V=V_, t=t_)
 
-    if drop_counter > 0:
+    if drop_counter > 0 and verbose is True:
         print("\tDropped {} outliers in {}".format(drop_counter, list(original_outlier_dict.keys())))
         print("")
 
@@ -167,7 +167,7 @@ def compute_outlier_dict(std_threshold, verbose, **signals):
     return outlier_dict
 
 
-def handle_small_Qd_outliers(Qd, t, std_threshold, verbose, Qd_max_outlier=0.06):
+def handle_small_Qd_outliers(Qd, t, verbose, std_threshold, Qd_max_outlier):
     """
     Handles specifically small outliers in Qd, which are a result of constant values for a
     small number of measurements before the "outlier". The constant values are imputed by
@@ -189,7 +189,7 @@ def handle_small_Qd_outliers(Qd, t, std_threshold, verbose, Qd_max_outlier=0.06)
         numpy.ndarray -- The interpolated version of Qd.
     """
     Qd_ = Qd.copy()  # Only copy Qd, since it is the only array values are assigned to
-    outlier_dict = compute_outlier_dict(std_threshold, verbose=True, Qd=Qd_)
+    outlier_dict = compute_outlier_dict(std_threshold, verbose=False, Qd=Qd_)
 
     if outlier_dict.get("Qd"):
         # Get only the indeces of all small outliers
@@ -214,12 +214,13 @@ def handle_small_Qd_outliers(Qd, t, std_threshold, verbose, Qd_max_outlier=0.06)
             )
             # Assign the interpolated values
             Qd_[interp_mask] = interp_values
-            print("    Interpolated small Qd outlier from index {} to {}".format(start_id, i))
+            if verbose is True:
+                print("\tInterpolated small Qd outlier from index {} to {}".format(start_id, i))
 
     return Qd_
 
 
-def drop_cycle_big_t_outliers(Qd, T, V, t, verbose, std_threshold, t_diff_outlier_thresh=100):
+def drop_cycle_big_t_outliers(Qd, T, V, t, verbose, std_threshold, t_diff_outlier_thresh):
     """
     Checks for big outliers in the np.diff() values of t
     If any are found the whole cyce is dropped, with one exception:
@@ -250,7 +251,7 @@ def drop_cycle_big_t_outliers(Qd, T, V, t, verbose, std_threshold, t_diff_outlie
     else:
         t_outlier_mask = None
     # Take care of the big outliers
-    if t_outlier_mask is not None:
+    if np.any(t_outlier_mask):
         # Get the indeces 1 before the t outliers
         indeces_before_t_outliers = outlier_dict["t"]["outlier_indeces"][t_outlier_mask] - 1
         # Get the minimum V value right before all t outliers

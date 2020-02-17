@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 from scipy.signal import savgol_filter
 from scipy.interpolate import interp1d
 
@@ -6,8 +7,15 @@ from data_preprocessing.pkl_to_dict import pkl_to_dict
 from data_preprocessing.outliers_drop import drop_cycle_big_t_outliers, outlier_dict_without_mask
 from data_preprocessing.outliers_drop import handle_small_Qd_outliers, drop_outliers_starting_left
 from data_preprocessing.outliers_drop import DropCycleException, OutlierException
+from data_preprocessing.interpolate import make_strictly_decreasing
 
-BREAK_IDX = 100
+BREAK_IDX = 10000
+
+
+def save_preprocessed_data(results_dict, save_dir='./data/preprocessed_data'):
+    print("Saving preprocessed data to {}".format(save_dir))
+    with open(save_dir, 'wb') as f:
+        pickle.dump(results_dict, f)
 
 
 def filter_by_mask(index_mask, *arrays, drop_warning=False, drop_warning_thresh=0.10):
@@ -25,44 +33,8 @@ def filter_by_mask(index_mask, *arrays, drop_warning=False, drop_warning_thresh=
     return tuple(indexed_arrays)
 
 
-def make_strictly_decreasing(x_interp, y_interp, prepend_value=3.7):     
-    """
-    Takes a monotonically decreasing array y_interp and makes it strictly decreasing by interpolation over x_interp.
-
-    Arguments:
-        x_interp {numpy.ndarray} -- The values to interpolate over.
-        y_interp {numpy.ndarray} -- Monotonically decreasing values.
-
-    Keyword Arguments:
-        prepend_value {float} -- Value to prepend to y_interp for assesing the difference to the preceding value.
-            (default: {3.7})
-
-    Returns:
-        numpy.ndarray -- y_interp with interpolated values, where there used to be zero difference to
-            the preceding value.
-    """
-    y_interp_copy = y_interp.copy()
-    # Make the tale interpolatable if the last value is not the single minimum.
-    if y_interp_copy[-1] >= y_interp_copy[-2]:
-        y_interp_copy[-1] -= 0.0001
-
-    # Build a mask for all values, which do not decrease.
-    bigger_equal_zero_diff = np.diff(y_interp_copy, prepend=prepend_value) >= 0
-    # Replace these values with interpolations based on their border values.
-    interp_values = np.interp(
-        x_interp[bigger_equal_zero_diff],  # Where to evaluate the interpolation function.
-        x_interp[~bigger_equal_zero_diff],  # X values for the interpolation function.
-        y_interp_copy[~bigger_equal_zero_diff]  # Y values for the interpolation function.
-    )
-    y_interp_copy[bigger_equal_zero_diff] = interp_values
-
-    # This has to be given, since interpolation will fail otherwise.
-    assert np.all(np.diff(y_interp_copy) < 0), "The result y_copy is not strictly decreasing!"
-
-    return y_interp_copy
-
-
 def preprocess_cycle(cycle,
+                     verbose,
                      I_thresh=-3.99,
                      Vdlin_start=3.5,
                      Vdlin_stop=2.0,
@@ -106,13 +78,13 @@ def preprocess_cycle(cycle,
     Qd, T, V, t = filter_by_mask(increasing_time_mask, Qd, T, V, t)
 
     # Drop t outliers
-    Qd, T, V, t = drop_cycle_big_t_outliers(Qd, T, V, t, verbose=False, std_threshold=15)
+    Qd, T, V, t = drop_cycle_big_t_outliers(Qd, T, V, t, verbose, std_threshold=15, t_diff_outlier_thresh=100)
 
     # Handle Qd outliers
-    Qd = handle_small_Qd_outliers(Qd, t, verbose=False, std_threshold=12)
+    Qd = handle_small_Qd_outliers(Qd, t, verbose=False, std_threshold=12, Qd_max_outlier=0.06)
 
     # Drop Qd outliers
-    Qd, T, V, t = drop_outliers_starting_left(Qd, T, V, t, std_threshold=12)
+    Qd, T, V, t = drop_outliers_starting_left(Qd, T, V, t, verbose, std_threshold=12)
 
     # Apply savitzky golay filter to V to smooth out the values.
     # This is done in order to not drop too many values in the next processing step (make monotonically decreasing).
@@ -122,6 +94,13 @@ def preprocess_cycle(cycle,
         raise DropCycleException("""Dropping cycle with less than {} V values.\nSizes --> Qd:{}, T:{}, V:{}, t:{}"""
                                  .format(savgol_window_length, Qd.size, T.size, V.size, t.size))
     V_savgol = savgol_filter(V, window_length=25, polyorder=2)
+
+    # plt.plot(t, V, label='Non-filtered')
+    # plt.plot(t, V_savgol, label='Filtered')
+    # plt.xlabel('t')
+    # plt.ylabel('V')
+    # plt.legend(loc='upper right', shadow=True, fontsize='x-large')
+    # plt.show()
 
     # Only take the measurements, where V is monotonically decreasing (needed for interpolation).
     # This is done by comparing V to the accumulated minimum of V.
@@ -135,7 +114,6 @@ def preprocess_cycle(cycle,
     # Calculate discharging time. (Only scalar feature which is returned later)
     discharging_time = t.max() - t.min()
     if discharging_time < 6:
-        print("Test")
         raise DropCycleException("Dropping cycle with discharge_time = {}"
                                  .format(discharging_time))
 
@@ -162,10 +140,10 @@ def preprocess_cycle(cycle,
 
     if return_original_data:
         return {
-            cst.QDLIN_NAME: Qdlin,
-            cst.TDLIN_NAME: Tdlin,
-            cst.VDLIN_NAME: Vdlin,
-            cst.DISCHARGE_TIME_NAME: discharging_time,
+            'Qdlin': Qdlin,
+            'Tdlin': Tdlin,
+            'Vdlin': Vdlin,
+            'Discharge_time': discharging_time,
             # Original data used for interpolation.
             "Qd_original_data": Qd,
             "T_original_data": T,
@@ -174,14 +152,14 @@ def preprocess_cycle(cycle,
         }
     else:
         return {
-            cst.QDLIN_NAME: Qdlin,
-            cst.TDLIN_NAME: Tdlin,
-            cst.VDLIN_NAME: Vdlin,
-            cst.DISCHARGE_TIME_NAME: discharging_time
+            'Qdlin': Qdlin,
+            'Tdlin': Tdlin,
+            'Vdlin': Vdlin,
+            'Discharge_time': discharging_time
         }
 
 
-def preprocess_batch(batch_dict):
+def preprocess_batch(batch_dict, return_original_data, return_cycle_drop_info, verbose):
     """
     Processes all cycles of every cell in batch_dict and returns the results in the same format.
 
@@ -217,13 +195,13 @@ def preprocess_batch(batch_dict):
         )
         # go through each cycle
         for cycle_key, cycle in cell["cycles"].items():
-            print(cycle_key, ':', cell["cycle_life"][0][0])
+            # print(cycle_key, ':', cell["cycle_life"][0][0])
             # Cycles zero needs to be droped as they just contain 2 measurements most of the time
             if cycle_key == '0':
                 continue
             # Some cells have more cycle measurements than recorded cycle_life
             # The reamining cycles will be dropped
-            elif int(cycle_key) > int(cell["cycle_life"][0][0]):
+            elif int(cycle_key) > int(cell["cycle_life"][0][0]) and verbose is True:
                 print("    Cell {} has more cycles than cycle_life ({}): Dropping remaining cycles {} to {}"
                       .format(cell_key,
                               cell["cycle_life"][0][0],
@@ -233,21 +211,23 @@ def preprocess_batch(batch_dict):
 
             # Start processing the cycle
             try:
-                cycle_results = preprocess_cycle(cycle)
+                cycle_results = preprocess_cycle(cycle, verbose=verbose)
 
             except DropCycleException as e:
-                print("cell:", cell_key, " cycle:", cycle_key)
-                print(e)
-                print("")
+                if verbose is True:
+                    print("cell:", cell_key, " cycle:", cycle_key)
+                    print(e)
+                    print("")
                 # Documenting dropped cell and key
                 drop_info = {cell_key: {cycle_key: None}}
-                cycles_drop_info.update(drop_info)        
+                cycles_drop_info.update(drop_info)
                 continue
 
             except OutlierException as oe:  # Can be raised if preprocess_cycle, if an outlier is found.
-                print("cell:", cell_key, " cycle:", cycle_key)
-                print(oe)
-                print("")
+                if verbose is True:
+                    print("cell:", cell_key, " cycle:", cycle_key)
+                    print(oe)
+                    print("")
                 # Adding outlier dict from Exception to the cycles_drop_info.
                 drop_info = {
                     cell_key: {
@@ -255,15 +235,47 @@ def preprocess_batch(batch_dict):
                 cycles_drop_info.update(drop_info)
                 continue
 
+            # Copy scalar values for this cycle into the results
+            batch_results[cell_key]["summary"]['IR'].append(
+                cell["summary"]['IR'][int(cycle_key)])
+            batch_results[cell_key]["summary"]['QD'].append(
+                cell["summary"]['QD'][int(cycle_key)])
+            batch_results[cell_key]["summary"]['Remaining_cycles'].append(
+                cell["cycle_life"][0][0] - int(cycle_key))
+            batch_results[cell_key]["summary"]['Discharge_time'].append(
+                cycle_results.pop('Discharge_time'))
+
+            # Write the preprocessed timeseries data assocaited to this cycle
+            batch_results[cell_key]["cycles"][cycle_key] = cycle_results
+
+        # Convert lists of appended values to numpy arrays.
+        for k, v in batch_results[cell_key]["summary"].items():
+            batch_results[cell_key]["summary"][k] = np.array(v)
+
+        print(cell_key, "done")
+        # Delete cell key from dict, to reduce used memory during processing.
+        del batch_dict[cell_key]
+
+    cycles_drop_info["number_distinct_cells"] = len(cycles_drop_info)
+    cycles_drop_info["number_distinct_cycles"] = sum([len(value) for key, value in cycles_drop_info.items()
+                                                      if key != "number_distinct_cells"])
+
+    print("Done processing data.")
+    if return_cycle_drop_info:
+        return batch_results, cycles_drop_info
+    else:
+        return batch_results
+
 
 def main():
     print('\n\n\tStarted to processing the data...\n')
     batch_dict = pkl_to_dict()
+    results, cycles_drop_info = preprocess_batch(batch_dict,
+                                                 return_original_data=False,
+                                                 return_cycle_drop_info=True,
+                                                 verbose=False)
 
-    preprocess_batch(batch_dict)
-
-    #print(batch_dict.keys())
-
+    save_preprocessed_data(results)
     print("Done!")
 
 
