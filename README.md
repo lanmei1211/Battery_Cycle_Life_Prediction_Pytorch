@@ -11,12 +11,17 @@ Batteries are charged and discharged until the battery reaches 80% of its origin
 
 ![](cycle_number_VS_discharge_capacity.png)
 
-Moreover, the data is comprised of scalar values associated to a specific cycle and the timeseries data corresponding to it. The scalar values are comprised of:
+Moreover, the data is comprised of scalar values associated to a specific cycle and the timeseries data corresponding to it.
+
+The scalar values are comprised of:
+
  * Internal resistance (Ω)
  * Total charge (Ah)
  * Discharge time (Minutes)
  * Remaining cycles (Positive integer)
+ 
 The timeseries data is comprised of: 
+
  * Temperature (°C)
  * Charge (Ah)
  * Voltage (V)
