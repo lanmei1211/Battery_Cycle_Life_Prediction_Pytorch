@@ -11,7 +11,7 @@ Batteries are charged and discharged until the battery reaches 80% of its origin
 
 ![](cycle_number_VS_discharge_capacity.png)
 
-Moreover, the data is comprised of scalar values associated to a specific cycle and the timeseries data corresponding to it.
+The data is comprised of scalar values associated to a specific cycle and the timeseries data corresponding to it.
 
 The scalar values are comprised of:
 
@@ -26,4 +26,48 @@ The timeseries data is comprised of:
  * Charge (Ah)
  * Voltage (V)
  * Current (A)
+
+## Preprocessing
+
+In order to preprocess the data run
+
+```
+python3 data_preprocessing.py
+```
+
+from the base directory. This will generate a .pkl file in your data directory.The generated result is a nested dict with the following structure:
+
+dataset
+
+    b1c1
+    
+        cycle_life
+        
+            # total cycles untill 80% of thenomial capacity has been reached
+            
+        summary
+        
+            IR
+            
+            QD
+            
+            Remaining_cycles
+            
+            Discharge_time
+            
+        cycles
+        
+            Qdlin
+            
+            Tdlin
+            
+            Vdlin
+            
+    b1c2
+    
+        ...
+        
+            ...
+            
+
 
