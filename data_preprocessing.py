@@ -12,7 +12,7 @@ from data_preprocessing.interpolate import make_strictly_decreasing
 BREAK_IDX = 10000
 
 
-def save_preprocessed_data(results_dict, save_dir='./data/preprocessed_data'):
+def save_preprocessed_data(results_dict, save_dir='./data/preprocessed_data.pkl'):
     print("Saving preprocessed data to {}".format(save_dir))
     with open(save_dir, 'wb') as f:
         pickle.dump(results_dict, f)
