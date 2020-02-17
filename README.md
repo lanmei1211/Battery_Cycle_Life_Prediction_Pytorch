@@ -27,15 +27,15 @@ The timeseries data is comprised of:
  * Voltage (V)
  * Current (A)
 
-## The data
+## Preprocessing
 
-After preprocessing with
+In order to preprocess the data run
 
-"""
+```
 python3 preprocessing.py
-"""
+```
 
-the generated result is a nested dict with the following structure:
+from the base directory. This will generate a .pkl file in your data directory.The generated result is a nested dict with the following structure:
 
 dataset
     battery 1
