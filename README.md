@@ -6,12 +6,13 @@
 
 The data is available [here](https://data.matr.io/1/projects/5c48dd2bc625d700019f3204). Download the three batches in `.mat`. Then create a `data` folder in the project's root directory and move the `.mat` there. The final folder structure should look like this:
 
+```
 long_cycle_life_prediction
 ├── data
 |   ├── 2017-05-12_batchdata_updated_struct_errorcorrect.mat
 |   ├── 2018-04-12_batchdata_updated_struct_errorcorrect.mat
 |   └── 2017-06-30_batchdata_updated_struct_errorcorrect.mat
-
+```
 
 ## The data
 
