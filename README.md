@@ -27,3 +27,31 @@ The timeseries data is comprised of:
  * Voltage (V)
  * Current (A)
 
+## The data
+
+After preprocessing with
+
+"""
+python3 preprocessing.py
+"""
+
+the generated result is a nested dict with the following structure:
+
+dataset
+    battery 1
+        cycle_life
+            # total cycles untill 80% of thenomial capacity has been reached
+        summary
+            IR
+            QD
+            Remaining_cycles
+            Discharge_time
+        cycles
+            Qdlin
+            Tdlin
+            Vdlin
+    battery 2
+        ...
+            ...
+
+
