@@ -64,9 +64,21 @@ dataset
             Remaining_cycles
             Discharge_time
         cycles
-            Qdlin
-            Tdlin
-            Vdlin
+            1
+                Qdlin
+                Tdlin
+                Vdlin
+            2
+                Qdlin
+                Tdlin
+                Vdlin
+                
+            ...
+            n
+            
+                Qdlin
+                Tdlin
+                Vdlin    
     b1c2
         ...
             ...
