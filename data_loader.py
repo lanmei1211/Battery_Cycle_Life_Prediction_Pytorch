@@ -74,21 +74,29 @@ def load_preprocessed_data():
 
 # The class inherits the base class Dataset from pytorch
 class LoadData(Dataset):  # for training/testing
-    def __init__(self, data_path):
+    def __init__(self, data_path, window):
         super(LoadData, self).__init__()
 
         self.data = pickle.load(open(data_path, 'rb'))
-        self.keys = calculate_and_save_scaling_factors(self.data, None, 'data/scaling_factors.csv')
+        self.keys = self.data.keys()
+        self.window = window
+        self.scaling = calculate_and_save_scaling_factors(self.data, None, 'data/scaling_factors.csv')
         # print(self.data.keys())
         # for cell_name, cell_data in self.data.items():
         #    write_single_cell(cell_name, cell_data, data_dir, scaling_factors)
 
     def __getkeys__(self):
-        return self.data.keys()
+        return self.data.keys(), self.data['b1c2'].keys(), self.data['b1c2']['summary'].keys(), self.data['b1c2']['cycles']['10'].keys()  
 
-    def __getitem__(self, key):
-        input = self.data[key]
-        return input
+    def __getitem__(self, bat_key):
+        print(bat_key)
+        discharge_timeseries = self.data['b1c2']['cycles']['10']['Qdlin']
+        temperature_timeseries = self.data['b1c2']['cycles']['10']['Tdlin']
+        return discharge_timeseries
 
     def __len__(self):
-        return len(self.data)
+        #Qdlen = len(self.data[bat_key]['cycles'][cycle_nr]['Qdlin'])
+        #Vdlen = len(self.data[bat_key]['cycles'][cycle_nr]['Vdlin'])
+        #Tdlen = len(self.data[bat_key]['cycles'][cycle_nr]['Tdlin'])
+        #return Qdlen, Vdlen, Tdlen
+        return 10000
