@@ -94,9 +94,9 @@ def pkl_to_dict():
     bat_dict = {**batch1, **batch2, **batch3}
     assert len(bat_dict.keys()) == 124
 
-    #test_ind = np.hstack((np.arange(0, (numBat1 + numBat2), 2), 83))
-    #train_ind = np.arange(1, (numBat1 + numBat2 - 1), 2)
-    #secondary_test_ind = np.arange(numBat - numBat3, numBat)
+    # test_ind = np.hstack((np.arange(0, (numBat1 + numBat2), 2), 83))
+    # train_ind = np.arange(1, (numBat1 + numBat2 - 1), 2)
+    # secondary_test_ind = np.arange(numBat - numBat3, numBat)
     print('DONE')
 
     return bat_dict

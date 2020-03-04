@@ -76,27 +76,75 @@ def load_preprocessed_data():
 class LoadData(Dataset):  # for training/testing
     def __init__(self, data_path, window):
         super(LoadData, self).__init__()
-
+        self.max_cycles_allowed = 20
+        self.nr_stacked_cycles = 4
+        self.timeseries_samples = []
+        self.scalar_samples = []
+        self.targets = []
+        self.index = 0
         self.data = pickle.load(open(data_path, 'rb'))
         self.keys = self.data.keys()
         self.window = window
-        self.scaling = calculate_and_save_scaling_factors(self.data, None, 'data/scaling_factors.csv')
-        # print(self.data.keys())
-        # for cell_name, cell_data in self.data.items():
-        #    write_single_cell(cell_name, cell_data, data_dir, scaling_factors)
+        # self.scaling = calculate_and_save_scaling_factors(self.data, None, 'data/scaling_factors.csv')
+        self.scaling = {'IR': 0.021187941, 'QD': 1.0777442, 'Remaining_cycles': 1835.0, 'Discharge_time': 14.4768716666668, 'Qdlin': 1.0614862, 'Tdlin': 43.10046952811214}
 
-    def __getkeys__(self):
-        return self.data.keys(), self.data['b1c2'].keys(), self.data['b1c2']['summary'].keys(), self.data['b1c2']['cycles']['10'].keys()  
+        # go through each battery
+        for battery in self.data.keys():
+            # find the first 16 cycles in the battery by extractng their keys
+            cycles = []
+            for i, cycle in enumerate(self.data[battery]['cycles']):
+                cycles.append(cycle)
+                if i == (self.max_cycles_allowed - 1):
+                    break
 
-    def __getitem__(self, bat_key):
-        print(bat_key)
-        discharge_timeseries = self.data['b1c2']['cycles']['10']['Qdlin']
-        temperature_timeseries = self.data['b1c2']['cycles']['10']['Tdlin']
-        return discharge_timeseries
+            # loop trough the cycles
+            for i, cycle in enumerate(cycles):
+                # take next battery when the 16th cycle is reached
+                # then we will have 16 stacked data frames of length 4
+                if i == (self.max_cycles_allowed - self.nr_stacked_cycles - 1):
+                    break
+
+                # extract scalar values
+                current_cycle = self.data[battery]['cycle_life'] - \
+                    self.data[battery]['summary']['Remaining_cycles'][i + (self.nr_stacked_cycles - 1)]
+                self.targets.append([self.data[battery]['summary']['Remaining_cycles'][i + (self.nr_stacked_cycles - 1)], current_cycle])
+                self.scalar_samples.append([self.data[battery]['summary']['IR'][i],
+                                            self.data[battery]['summary']['QD'][i],
+                                            self.data[battery]['summary']['Discharge_time'][i]])
+
+                # extract charge and temperature
+                # convert shape from (x,) to (x,1) in order to make it transposable
+                # cycle is ALLOWAYS ONE OFF (+1)
+                Qdlin_1 = self.data[battery]['cycles'][cycle]['Qdlin']
+                Qdlin_1_len = len(self.data[battery]['cycles'][cycle]['Qdlin'])
+                Qdlin_1 = Qdlin_1.reshape(Qdlin_1_len, 1)
+                Qdlin_2 = self.data[battery]['cycles'][cycles[int(cycle) - 1 + 1]]['Qdlin']
+                Qdlin_2 = Qdlin_2.reshape(Qdlin_1_len, 1)
+                Qdlin_3 = self.data[battery]['cycles'][cycles[int(cycle) - 1 + 2]]['Qdlin']
+                Qdlin_3 = Qdlin_3.reshape(Qdlin_1_len, 1)
+                Qdlin_4 = self.data[battery]['cycles'][cycles[int(cycle) - 1 + 3]]['Qdlin']
+                Qdlin_4 = Qdlin_4.reshape(Qdlin_1_len, 1)
+
+                Tdlin_1 = self.data[battery]['cycles'][cycle]['Tdlin']
+                Tdlin_1_len = len(self.data[battery]['cycles'][cycle]['Tdlin'])
+                Tdlin_1 = Tdlin_1.reshape(Tdlin_1_len, 1)
+                Tdlin_2 = self.data[battery]['cycles'][cycles[int(cycle) - 1 + 1]]['Tdlin']
+                Tdlin_2 = Tdlin_2.reshape(Tdlin_1_len, 1)
+                Tdlin_3 = self.data[battery]['cycles'][cycles[int(cycle) - 1 + 2]]['Tdlin']
+                Tdlin_3 = Tdlin_3.reshape(Tdlin_1_len, 1)
+                Tdlin_4 = self.data[battery]['cycles'][cycles[int(cycle) - 1 + 3]]['Tdlin']
+                Tdlin_4 = Tdlin_4.reshape(Tdlin_1_len, 1)
+
+                # stack arrays in sequence horizontally (column wise). This transpose data
+                Qdlin_transposed = np.hstack((Qdlin_1, Qdlin_2, Qdlin_3, Qdlin_4))
+                Tdlin_transposed = np.hstack((Tdlin_1, Tdlin_2, Tdlin_3, Tdlin_4))
+
+                # stack arrays in sequence depth wise (along third axis).
+                stacked_data = np.dstack((Qdlin_transposed, Tdlin_transposed))
+                self.timeseries_samples.append(stacked_data)
+
+    def __getitem__(self, idx):
+        return self.timeseries_samples[idx], self.targets[idx][0], self.targets[idx][1]
 
     def __len__(self):
-        #Qdlen = len(self.data[bat_key]['cycles'][cycle_nr]['Qdlin'])
-        #Vdlen = len(self.data[bat_key]['cycles'][cycle_nr]['Vdlin'])
-        #Tdlen = len(self.data[bat_key]['cycles'][cycle_nr]['Tdlin'])
-        #return Qdlen, Vdlen, Tdlen
-        return 10000
+        return len(self.timeseries_samples)
