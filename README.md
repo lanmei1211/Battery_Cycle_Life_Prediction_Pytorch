@@ -56,10 +56,9 @@ from the base directory. This will generate `preprocessed_data.pkl` file in your
 ```
 dataset
     b1c1
-        cycle_life
-            # total cycles untill 80% of thenomial capacity has been reached
-        summary
-            IR
+        cycle_life # total cycles untill 80% of thenomial capacity has been reached
+        summary # each of these subentries contain 1 value associated to each cycle 
+            IR 
             QD
             Remaining_cycles
             Discharge_time
